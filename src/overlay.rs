@@ -8,7 +8,9 @@ pub struct OverlayApp {
     x11: Arc<X11Manager>,
     state: Arc<Mutex<CycleState>>,
     config: crate::config::Config,
-    last_drag_pos: Option<egui::Pos2>,
+    drag_start_window_pos: Option<egui::Pos2>,
+    drag_accumulated: egui::Vec2,
+    overlay_window_id: Option<u32>,
 }
 
 impl OverlayApp {
@@ -22,7 +24,9 @@ impl OverlayApp {
             x11,
             state,
             config,
-            last_drag_pos: None,
+            drag_start_window_pos: None,
+            drag_accumulated: egui::Vec2::ZERO,
+            overlay_window_id: None,
         }
     }
 }
@@ -120,31 +124,47 @@ impl eframe::App for OverlayApp {
             });
 
         // Handle dragging with middle mouse button
-        if ctx.input(|i| i.pointer.middle_down()) {
-            let delta = ctx.input(|i| i.pointer.delta());
+        let middle_down = ctx.input(|i| i.pointer.button_down(egui::PointerButton::Middle));
 
-            // Store accumulated drag before updating
-            if delta.length() > 0.0 {
-                self.last_drag_pos = Some(self.last_drag_pos.unwrap_or(egui::Pos2::ZERO) + delta);
-            }
+        if middle_down {
+            // Initialize drag if just started
+            if self.drag_start_window_pos.is_none() {
+                if let Some(window_pos) = ctx.input(|i| i.viewport().outer_rect).map(|r| r.min) {
+                    self.drag_start_window_pos = Some(window_pos);
+                    self.drag_accumulated = egui::Vec2::ZERO;
 
-            ctx.set_cursor_icon(egui::CursorIcon::Grabbing);
-        } else if ctx.input(|i| i.pointer.button_released(egui::PointerButton::Middle)) {
-            // Apply accumulated drag when button is released
-            if let Some(accumulated) = self.last_drag_pos.take() {
-                if accumulated.to_vec2().length() > 1.0 {
-                    if let Some(current_pos) = ctx.input(|i| i.viewport().inner_rect).map(|r| r.min) {
-                        let new_x = (current_pos.x + accumulated.x) as i32;
-                        let new_y = (current_pos.y + accumulated.y) as i32;
-
-                        let _ = std::process::Command::new("wmctrl")
-                            .args(&["-r", "EVE Clients", "-e", &format!("0,{},{},280,450", new_x, new_y)])
-                            .output();
+                    // Cache the window ID once at the start
+                    if self.overlay_window_id.is_none() {
+                        if let Ok(Some(id)) = self.x11.find_window_by_title("EVE Clients") {
+                            self.overlay_window_id = Some(id);
+                        }
                     }
                 }
             }
-        } else if ctx.input(|i| i.pointer.hover_pos()).is_some() {
-            ctx.set_cursor_icon(egui::CursorIcon::Grab);
+
+            // Accumulate mouse delta
+            let delta = ctx.input(|i| i.pointer.delta());
+            if delta.length() > 0.0 {
+                self.drag_accumulated += delta;
+
+                // Use cached window ID for instant movement
+                if let (Some(start_window), Some(window_id)) = (self.drag_start_window_pos, self.overlay_window_id) {
+                    let new_x = (start_window.x + self.drag_accumulated.x) as i32;
+                    let new_y = (start_window.y + self.drag_accumulated.y) as i32;
+
+                    let _ = self.x11.move_window(window_id, new_x, new_y);
+                }
+            }
+
+            ctx.set_cursor_icon(egui::CursorIcon::Grabbing);
+        } else {
+            // Reset drag state when button is released
+            self.drag_start_window_pos = None;
+            self.drag_accumulated = egui::Vec2::ZERO;
+
+            if ctx.input(|i| i.pointer.hover_pos()).is_some() {
+                ctx.set_cursor_icon(egui::CursorIcon::Grab);
+            }
         }
     }
 }

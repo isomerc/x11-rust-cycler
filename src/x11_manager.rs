@@ -194,4 +194,47 @@ impl X11Manager {
     pub fn get_screen_num(&self) -> usize {
         self.screen_num
     }
+
+    pub fn find_window_by_title(&self, title: &str) -> Result<Option<u32>> {
+        let screen = &self.conn.setup().roots[self.screen_num];
+        let root = screen.root;
+
+        let net_client_list = self.conn
+            .intern_atom(false, b"_NET_CLIENT_LIST")?
+            .reply()?
+            .atom;
+
+        let client_list_reply = self.conn
+            .get_property(false, root, net_client_list, AtomEnum::WINDOW, 0, u32::MAX)?
+            .reply()?;
+
+        let windows: Vec<u32> = client_list_reply
+            .value32()
+            .ok_or_else(|| anyhow::anyhow!("Failed to get window list"))?
+            .collect();
+
+        for &window in &windows {
+            if let Ok(window_title) = self.get_window_title(window) {
+                if window_title == title {
+                    return Ok(Some(window));
+                }
+            }
+        }
+
+        Ok(None)
+    }
+
+    pub fn move_window(&self, window_id: u32, x: i32, y: i32) -> Result<()> {
+        let values = ConfigureWindowAux::new().x(x).y(y);
+        self.conn.configure_window(window_id, &values)?;
+        self.conn.flush()?;
+        Ok(())
+    }
+
+    pub fn move_window_by_title(&self, title: &str, x: i32, y: i32) -> Result<()> {
+        if let Some(window_id) = self.find_window_by_title(title)? {
+            self.move_window(window_id, x, y)?;
+        }
+        Ok(())
+    }
 }
