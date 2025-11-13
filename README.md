@@ -13,6 +13,17 @@ High-performance EVE Online multiboxing tool for X11/Linux, inspired by EVE-O Pr
 
 ## Quick Install
 
+### One-Line Installer (Recommended)
+
+```bash
+curl -sSL https://raw.githubusercontent.com/isomerc/nicotine/main/install-github.sh | bash
+```
+
+Then restart your terminal and run:
+```bash
+nicotine start    # Automatically runs in background
+```
+
 ### From Source
 
 ```bash

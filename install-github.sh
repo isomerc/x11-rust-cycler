@@ -27,10 +27,11 @@ aarch64 | arm64)
 esac
 
 echo "[1/4] Detecting latest release..."
-LATEST_URL=$(curl -sL "https://api.github.com/repos/$REPO/releases/latest" | grep "browser_download_url.*linux-$ARCH" | cut -d '"' -f 4)
+LATEST_URL=$(curl -sL "https://api.github.com/repos/$REPO/releases/latest" | grep "browser_download_url.*nicotine-linux-$ARCH\"" | cut -d '"' -f 4)
 
 if [ -z "$LATEST_URL" ]; then
   echo "Error: Could not find release for linux-$ARCH"
+  echo "Looking for: nicotine-linux-$ARCH"
   exit 1
 fi
 
