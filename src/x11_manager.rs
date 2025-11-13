@@ -183,4 +183,8 @@ impl X11Manager {
     pub fn get_connection(&self) -> Arc<RustConnection> {
         Arc::clone(&self.conn)
     }
+
+    pub fn get_screen_num(&self) -> usize {
+        self.screen_num
+    }
 }

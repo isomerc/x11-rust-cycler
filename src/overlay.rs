@@ -2,6 +2,7 @@ use crate::cycle_state::CycleState;
 use crate::x11_manager::{EveWindow, X11Manager};
 use eframe::egui;
 use std::sync::{Arc, Mutex};
+use x11rb::connection::Connection;
 
 pub struct OverlayApp {
     x11: Arc<X11Manager>,
@@ -102,6 +103,17 @@ pub fn run_overlay(
     eframe::run_native(
         "EVE Clients",
         options,
-        Box::new(move |cc| Ok(Box::new(OverlayApp::new(cc, x11, state, overlay_x, overlay_y)))),
+        Box::new(move |cc| {
+            // Set X11 window properties after window is created
+            std::thread::spawn(|| {
+                std::thread::sleep(std::time::Duration::from_millis(300));
+                // Use wmctrl to set always on top
+                let _ = std::process::Command::new("wmctrl")
+                    .args(&["-r", "EVE Clients", "-b", "add,above"])
+                    .output();
+            });
+            Ok(Box::new(OverlayApp::new(cc, x11, state, overlay_x, overlay_y)))
+        }),
     )
 }
+
