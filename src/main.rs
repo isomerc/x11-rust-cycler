@@ -126,6 +126,7 @@ fn main() -> Result<()> {
             let file = match OpenOptions::new()
                 .write(true)
                 .create(true)
+                .truncate(true)
                 .mode(0o644)
                 .open(lock_file)
             {
@@ -171,6 +172,7 @@ fn main() -> Result<()> {
             let file = match OpenOptions::new()
                 .write(true)
                 .create(true)
+                .truncate(true)
                 .mode(0o644)
                 .open(lock_file)
             {

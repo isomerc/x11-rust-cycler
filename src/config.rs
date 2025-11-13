@@ -25,7 +25,7 @@ impl Config {
     fn detect_display_size() -> (u32, u32) {
         // Try to detect display size using xrandr
         if let Ok(output) = std::process::Command::new("xrandr")
-            .args(&["--current"])
+            .args(["--current"])
             .output()
         {
             if let Ok(stdout) = String::from_utf8(output.stdout) {

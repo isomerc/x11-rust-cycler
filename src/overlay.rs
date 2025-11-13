@@ -230,7 +230,7 @@ pub fn run_overlay(
                 std::thread::sleep(std::time::Duration::from_millis(300));
                 // Use wmctrl to set always on top
                 let _ = std::process::Command::new("wmctrl")
-                    .args(&["-r", "Nicotine", "-b", "add,above"])
+                    .args(["-r", "Nicotine", "-b", "add,above"])
                     .output();
             });
             Ok(Box::new(OverlayApp::new(cc, x11, state, config)))
