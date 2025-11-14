@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/ghlogo.png" alt="Nicotine Logo" width="600">
+</div>
+
 # Nicotine
 
 High-performance EVE Online multiboxing tool for X11/Linux, inspired by EVE-O Preview.
