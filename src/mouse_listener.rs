@@ -16,7 +16,31 @@ impl MouseListener {
     }
 
     /// Find mouse device by looking for devices with BTN_SIDE or BTN_EXTRA capabilities
-    fn find_mouse_device() -> Result<Device> {
+    /// If a device path is provided in the config, it will be used directly
+    fn find_mouse_device(configured_path: Option<&str>) -> Result<Device> {
+        // Try configured path first
+        if let Some(path_str) = configured_path {
+            let path = Path::new(path_str);
+            match Device::open(path) {
+                Ok(device) => {
+                    println!(
+                        "Using configured mouse device: {} ({})",
+                        device.name().unwrap_or("Unknown"),
+                        path.display()
+                    );
+                    return Ok(device);
+                }
+                Err(e) => {
+                    eprintln!(
+                        "Warning: Failed to open configured mouse device '{}': {}",
+                        path_str, e
+                    );
+                    eprintln!("Falling back to automatic device detection...");
+                }
+            }
+        }
+
+        // Fall back to automatic detection
         let devices_path = Path::new("/dev/input");
 
         for entry in std::fs::read_dir(devices_path)? {
@@ -59,9 +83,10 @@ impl MouseListener {
 
         let forward_button = self.config.forward_button;
         let backward_button = self.config.backward_button;
+        let mouse_device_path = self.config.mouse_device_path.clone();
 
         let handle = std::thread::spawn(move || {
-            match Self::run_listener(wm, state, forward_button, backward_button) {
+            match Self::run_listener(wm, state, forward_button, backward_button, mouse_device_path) {
                 Ok(_) => println!("Mouse listener stopped"),
                 Err(e) => eprintln!("Mouse listener error: {}", e),
             }
@@ -75,8 +100,9 @@ impl MouseListener {
         state: Arc<Mutex<CycleState>>,
         forward_button: u16,
         backward_button: u16,
+        mouse_device_path: Option<String>,
     ) -> Result<()> {
-        let mut device = Self::find_mouse_device().context(
+        let mut device = Self::find_mouse_device(mouse_device_path.as_deref()).context(
             "Failed to find mouse device. Make sure you have permission to read /dev/input/event*",
         )?;
 

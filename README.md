@@ -82,6 +82,7 @@ Edit `~/.config/nicotine/config.toml` to customize:
 enable_mouse_buttons = true
 forward_button = 276   # Button 9 (forward/side button)
 backward_button = 275  # Button 8 (backward button)
+mouse_device_path = "/dev/input/event3" # Optional and not created on first run, find the correct device with evtest
 ```
 
 **Common button codes:**
